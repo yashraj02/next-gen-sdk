@@ -34,7 +34,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvLogs: TextView
     private val backgroundScope = CoroutineScope(Dispatchers.IO)
     private val mainScope = CoroutineScope(Dispatchers.Main)
-
     private var interstitialAd: InterstitialAd? = null
     private var rewardedAd: RewardedAd? = null
     private var rewardedInterstitialAd: RewardedInterstitialAd? = null
