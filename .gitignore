@@ -7,9 +7,17 @@
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/deviceManager.xml
+/.idea/usageTracker.xml
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+
+# Project specific
+git_ssh
+git_ssh.pub
+.kotlin/

@@ -26,6 +26,8 @@ import com.google.android.libraries.ads.mobile.sdk.common.AdRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.google.android.libraries.ads.mobile.sdk.banner.AdView
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -36,6 +38,9 @@ class MainActivity : AppCompatActivity() {
     private var interstitialAd: InterstitialAd? = null
     private var rewardedAd: RewardedAd? = null
     private var rewardedInterstitialAd: RewardedInterstitialAd? = null
+
+    private var bannerAdView: AdView? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +71,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        bannerAdView?.destroy()
+    }
+
     private fun setupButtons() {
         findViewById<Button>(R.id.btn_interstitial).setOnClickListener {
             interstitialAd?.show(this) ?: logEvent("Interstitial: Not ready")
@@ -85,17 +95,22 @@ class MainActivity : AppCompatActivity() {
     private fun loadBannerAd() {
         val adUnitId = "ca-app-pub-3940256099942544/6300978111"
         val bannerContainer = findViewById<FrameLayout>(R.id.banner_container)
-        val adRequest = BannerAdRequest.Builder(adUnitId, AdSize.BANNER).build()
 
-        BannerAd.load(adRequest, object : AdLoadCallback<BannerAd> {
+        // NEW PATTERN: AdView is constructed first, then loadAd() is called on it.
+        // AdView is itself a FrameLayout — add it to the container immediately.
+        // No need to get a view from the loaded ad later.
+        val adView = AdView(this)
+        bannerAdView = adView
+        bannerContainer.removeAllViews()
+        bannerContainer.addView(adView)
+
+        val adRequest = BannerAdRequest.Builder(adUnitId, AdSize.BANNER).build()
+        adView.loadAd(adRequest, object : AdLoadCallback<BannerAd> {
             override fun onAdLoaded(ad: BannerAd) {
-                runOnUiThread {
-                    // WHY: SDK fires onAdLoaded on a background thread (GMA(BG) 1).
-                    // All view operations must happen on the main thread.
-                    bannerContainer.removeAllViews()
-                    bannerContainer.addView(ad.getView(this@MainActivity))
-                    logEvent("Banner: Loaded")
-                }
+                // AdView renders itself — no getView() call needed at all.
+                // runOnUiThread not needed here because adView is already
+                // attached to the hierarchy and AdView handles its own rendering.
+                logEvent("Banner: Loaded")
             }
             override fun onAdFailedToLoad(error: LoadAdError) {
                 logEvent("Banner: Failed - ${error.message}")
@@ -170,7 +185,7 @@ class MainActivity : AppCompatActivity() {
 
         val bodyView = adView.findViewById<TextView>(R.id.ad_body)
         bodyView.text = nativeAd.body
-        adView.setBodyView(bodyView)
+        adView.bodyView = bodyView
 
         val ctaView = adView.findViewById<Button>(R.id.ad_call_to_action)
         ctaView.text = nativeAd.callToAction
