@@ -1,112 +1,192 @@
 package com.example.next_gen_sdkandroid16buildgradlekts
 
 import android.os.Bundle
-import android.view.View
+import android.util.Log
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.gms.ads.nativead.NativeAd
-import com.google.android.gms.ads.nativead.NativeAdView
+import com.google.android.libraries.ads.mobile.sdk.MobileAds
+import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
+import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
+import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
+import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
+import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
+import com.google.android.libraries.ads.mobile.sdk.rewarded.RewardedAd
+import com.google.android.libraries.ads.mobile.sdk.rewardedinterstitial.RewardedInterstitialAd
+import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoaderCallback
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdRequest
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView
+import com.google.android.libraries.ads.mobile.sdk.common.AdRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var appOpenAdManager: AppOpenAdManager
     private lateinit var tvLogs: TextView
+    private val backgroundScope = CoroutineScope(Dispatchers.IO)
+    private val mainScope = CoroutineScope(Dispatchers.Main)
+
+    private var interstitialAd: InterstitialAd? = null
+    private var rewardedAd: RewardedAd? = null
+    private var rewardedInterstitialAd: RewardedInterstitialAd? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize AdMob
-        AdManager.initialize(this)
-        
-        // Initialize App Open Ad Manager
-        appOpenAdManager = AppOpenAdManager(application)
-
-        // Setup UI
         tvLogs = findViewById(R.id.tv_logs)
-        setupAds()
+
+        setupButtons()
+
+        logEvent("Next-Gen SDK: Initializing...")
+
+        backgroundScope.launch {
+            try {
+                val initConfig = InitializationConfig.Builder("ca-app-pub-3940256099942544~3347511713").build()
+                MobileAds.initialize(this@MainActivity, initConfig) {
+                    mainScope.launch {
+                        logEvent("Next-Gen SDK: Initialized")
+                        loadBannerAd()
+                        loadInterstitialAd()
+                        loadRewardedAd()
+                        loadRewardedInterstitialAd()
+                        loadNativeAd()
+                    }
+                }
+            } catch (e: Exception) {
+                logEvent("Init Error: ${e.message}")
+            }
+        }
     }
 
-    private fun setupAds() {
-        // Banner Ad
-        val bannerContainer = findViewById<FrameLayout>(R.id.banner_container)
-        bannerContainer.addView(AdManager.createBannerAd(this))
-        logEvent("Banner: Loading...")
-
-        // Interstitial Ad
-        AdManager.loadInterstitial(this)
+    private fun setupButtons() {
         findViewById<Button>(R.id.btn_interstitial).setOnClickListener {
-            AdManager.showInterstitial(this)
-            AdManager.loadInterstitial(this) // Preload next
+            interstitialAd?.show(this) ?: logEvent("Interstitial: Not ready")
         }
-
-        // Rewarded Ad
-        AdManager.loadRewarded(this)
         findViewById<Button>(R.id.btn_rewarded).setOnClickListener {
-            AdManager.showRewarded(this) { amount ->
-                logEvent("Rewarded: Earned $amount coins!")
-                AdManager.loadRewarded(this) // Preload next
-            }
+            rewardedAd?.show(this) { reward ->
+                logEvent("Rewarded: Earned ${reward.amount} ${reward.type}")
+            } ?: logEvent("Rewarded: Not ready")
         }
-
-        // Rewarded Interstitial Ad
-        AdManager.loadRewardedInterstitial(this)
         findViewById<Button>(R.id.btn_rewarded_interstitial).setOnClickListener {
-            AdManager.showRewardedInterstitial(this) { amount ->
-                logEvent("Rewarded Interstitial: Earned $amount coins!")
-                AdManager.loadRewardedInterstitial(this) // Preload next
-            }
+            rewardedInterstitialAd?.show(this) { reward ->
+                logEvent("Rewarded Interstitial: Earned ${reward.amount} ${reward.type}")
+            } ?: logEvent("Rewarded Interstitial: Not ready")
         }
+    }
 
-        // Native Ad
-        AdManager.loadNativeAd(this) { nativeAd ->
-            populateNativeAdView(nativeAd, findViewById(R.id.native_ad_container))
-            logEvent("Native Ad: Loaded")
-        }
+    private fun loadBannerAd() {
+        val adUnitId = "ca-app-pub-3940256099942544/6300978111"
+        val bannerContainer = findViewById<FrameLayout>(R.id.banner_container)
+        val adRequest = BannerAdRequest.Builder(adUnitId, AdSize.BANNER).build()
+
+        BannerAd.load(adRequest, object : AdLoadCallback<BannerAd> {
+            override fun onAdLoaded(ad: BannerAd) {
+                runOnUiThread {
+                    // WHY: SDK fires onAdLoaded on a background thread (GMA(BG) 1).
+                    // All view operations must happen on the main thread.
+                    bannerContainer.removeAllViews()
+                    bannerContainer.addView(ad.getView(this@MainActivity))
+                    logEvent("Banner: Loaded")
+                }
+            }
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                logEvent("Banner: Failed - ${error.message}")
+            }
+        })
+    }
+
+    private fun loadInterstitialAd() {
+        val adUnitId = "ca-app-pub-3940256099942544/1033173712"
+        val adRequest = AdRequest.Builder(adUnitId).build()
+        InterstitialAd.load(adRequest, object : AdLoadCallback<InterstitialAd> {
+            override fun onAdLoaded(ad: InterstitialAd) {
+                interstitialAd = ad
+                logEvent("Interstitial: Loaded")
+            }
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                logEvent("Interstitial: Failed - ${error.message}")
+            }
+        })
+    }
+
+    private fun loadRewardedAd() {
+        val adUnitId = "ca-app-pub-3940256099942544/5224354917"
+        val adRequest = AdRequest.Builder(adUnitId).build()
+        RewardedAd.load(adRequest, object : AdLoadCallback<RewardedAd> {
+            override fun onAdLoaded(ad: RewardedAd) {
+                rewardedAd = ad
+                logEvent("Rewarded: Loaded")
+            }
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                logEvent("Rewarded: Failed - ${error.message}")
+            }
+        })
+    }
+
+    private fun loadRewardedInterstitialAd() {
+        val adUnitId = "ca-app-pub-3940256099942544/5354046379"
+        val adRequest = AdRequest.Builder(adUnitId).build()
+        RewardedInterstitialAd.load(adRequest, object : AdLoadCallback<RewardedInterstitialAd> {
+            override fun onAdLoaded(ad: RewardedInterstitialAd) {
+                rewardedInterstitialAd = ad
+                logEvent("Rewarded Interstitial: Loaded")
+            }
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                logEvent("Rewarded Interstitial: Failed - ${error.message}")
+            }
+        })
+    }
+
+    private fun loadNativeAd() {
+        val adUnitId = "ca-app-pub-3940256099942544/2247696110"
+        val adRequest = NativeAdRequest.Builder(adUnitId, listOf(NativeAd.NativeAdType.NATIVE)).build()
+
+        NativeAdLoader.load(adRequest, object : NativeAdLoaderCallback {
+            override fun onNativeAdLoaded(nativeAd: NativeAd) {
+                runOnUiThread {
+                    populateNativeAdView(nativeAd, findViewById(R.id.native_ad_container))
+                    logEvent("Native: Loaded")
+                }
+            }
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                logEvent("Native: Failed - ${error.message}")
+            }
+        })
     }
 
     private fun populateNativeAdView(nativeAd: NativeAd, parent: FrameLayout) {
         val adView = layoutInflater.inflate(R.layout.native_ad_layout, null) as NativeAdView
-        
-        adView.headlineView = adView.findViewById(R.id.ad_headline)
-        adView.bodyView = adView.findViewById(R.id.ad_body)
-        adView.callToActionView = adView.findViewById(R.id.ad_call_to_action)
-        adView.iconView = adView.findViewById(R.id.ad_app_icon)
-        adView.mediaView = adView.findViewById(R.id.ad_media)
 
-        (adView.headlineView as TextView).text = nativeAd.headline
-        nativeAd.mediaContent?.let { adView.mediaView?.setMediaContent(it) }
+        val headlineView = adView.findViewById<TextView>(R.id.ad_headline)
+        headlineView.text = nativeAd.headline
 
-        if (nativeAd.body == null) {
-            adView.bodyView?.visibility = android.view.View.INVISIBLE
-        } else {
-            adView.bodyView?.visibility = android.view.View.VISIBLE
-            (adView.bodyView as TextView).text = nativeAd.body
-        }
+        val bodyView = adView.findViewById<TextView>(R.id.ad_body)
+        bodyView.text = nativeAd.body
+        adView.bodyView = bodyView
 
-        if (nativeAd.callToAction == null) {
-            adView.callToActionView?.visibility = android.view.View.INVISIBLE
-        } else {
-            adView.callToActionView?.visibility = android.view.View.VISIBLE
-            (adView.callToActionView as Button).text = nativeAd.callToAction
-        }
+        val ctaView = adView.findViewById<Button>(R.id.ad_call_to_action)
+        ctaView.text = nativeAd.callToAction
 
-        if (nativeAd.icon == null) {
-            adView.iconView?.visibility = android.view.View.GONE
-        } else {
-            (adView.iconView as android.widget.ImageView).setImageDrawable(nativeAd.icon?.drawable)
-            adView.iconView?.visibility = android.view.View.VISIBLE
-        }
+        val mediaView = adView.findViewById<MediaView>(R.id.ad_media)
+        adView.registerNativeAd(nativeAd, mediaView)
 
-        adView.setNativeAd(nativeAd)
         parent.removeAllViews()
         parent.addView(adView)
     }
 
     private fun logEvent(message: String) {
-        val currentLogs = tvLogs.text.toString()
-        tvLogs.text = "$message\n$currentLogs"
+        mainScope.launch {
+            val currentLogs = tvLogs.text.toString()
+            tvLogs.text = "$message\n$currentLogs"
+            Log.d("MainActivity", message)
+        }
     }
 }

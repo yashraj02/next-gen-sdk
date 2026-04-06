@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.next_gen_sdkandroid16buildgradlekts"
-        minSdk = 36
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -43,7 +43,10 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("com.google.android.gms:play-services-ads:22.6.0")
+    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.25.0-beta01")
+    implementation("com.google.ads.mediation:facebook:6.21.0.2") {
+        exclude(group = "com.google.android.gms", module = "play-services-ads-api")
+    }
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.process)
