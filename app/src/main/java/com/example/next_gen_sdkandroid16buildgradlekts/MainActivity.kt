@@ -170,7 +170,7 @@ class MainActivity : AppCompatActivity() {
 
         val bodyView = adView.findViewById<TextView>(R.id.ad_body)
         bodyView.text = nativeAd.body
-        adView.bodyView = bodyView
+        adView.setBodyView(bodyView)
 
         val ctaView = adView.findViewById<Button>(R.id.ad_call_to_action)
         ctaView.text = nativeAd.callToAction
