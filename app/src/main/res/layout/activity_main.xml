@@ -77,6 +77,12 @@
                         android:layout_marginTop="8dp"
                         android:text="Show Rewarded Interstitial"
                         style="@style/Widget.Material3.Button.TonalButton"/>
+
+                    <Button
+                        android:id="@+id/btn_inspector"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Open Ad Inspector" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
