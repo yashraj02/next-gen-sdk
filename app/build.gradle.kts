@@ -43,7 +43,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("com.google.android.gms:play-services-ads:22.6.0")
+    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:0.25.0-beta01")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.process)
