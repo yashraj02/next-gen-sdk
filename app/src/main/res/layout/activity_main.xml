@@ -7,11 +7,23 @@
     android:background="#F5F5F5"
     tools:context=".MainActivity">
 
+    <TextView
+        android:id="@+id/tv_sdk_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FF9800"
+        android:padding="4dp"
+        android:text="Using Old GMA SDK"
+        android:textAlignment="center"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/tv_sdk_status">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
