@@ -2,15 +2,15 @@ package com.example.next_gen_sdkandroid16buildgradlekts
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.appopen.AppOpenAd
+import com.google.android.libraries.ads.mobile.sdk.appopen.AppOpenAd
+import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
+import com.google.android.libraries.ads.mobile.sdk.common.AdRequest
+import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 
 class AppOpenAdManager(private val application: Application) : DefaultLifecycleObserver, Application.ActivityLifecycleCallbacks {
 
@@ -26,24 +26,23 @@ class AppOpenAdManager(private val application: Application) : DefaultLifecycleO
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
     }
 
-    fun loadAd(context: Context) {
+    fun loadAd() {
         if (isLoadingAd || isAdAvailable()) return
 
         isLoadingAd = true
-        val request = AdRequest.Builder().build()
-        AppOpenAd.load(context, AD_UNIT_ID, request, AppOpenAd.APP_OPEN_AD_ORIENTATION_PORTRAIT,
-            object : AppOpenAd.AppOpenAdLoadCallback() {
-                override fun onAdLoaded(ad: AppOpenAd) {
-                    appOpenAd = ad
-                    isLoadingAd = false
-                    Log.d("AppOpenAdManager", "App Open Ad loaded")
-                }
+        val request = AdRequest.Builder(AD_UNIT_ID).build()
+        AppOpenAd.load(request, object : AdLoadCallback<AppOpenAd> {
+            override fun onAdLoaded(ad: AppOpenAd) {
+                appOpenAd = ad
+                isLoadingAd = false
+                Log.d("AppOpenAdManager", "App Open Ad loaded")
+            }
 
-                override fun onAdFailedToLoad(error: LoadAdError) {
-                    isLoadingAd = false
-                    Log.e("AppOpenAdManager", "App Open Ad failed to load: ${error.message}")
-                }
-            })
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                isLoadingAd = false
+                Log.e("AppOpenAdManager", "App Open Ad failed to load: ${error.message}")
+            }
+        })
     }
 
     private fun isAdAvailable(): Boolean {
@@ -59,10 +58,10 @@ class AppOpenAdManager(private val application: Application) : DefaultLifecycleO
             currentActivity?.let {
                 appOpenAd?.show(it)
                 appOpenAd = null
-                loadAd(it)
+                loadAd()
             }
         } else {
-            currentActivity?.let { loadAd(it) }
+            loadAd()
         }
     }
 
