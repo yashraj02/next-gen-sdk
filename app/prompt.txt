@@ -1,1 +1,2 @@
 I want to migrate this entire project to the GMA Next-Gen SDK. Read the AGENTS.md file for instructions. Start by updating the build.gradle dependencies and then help me refactor MainActivity.kt and my ad loading logic.
+Do test the build at the end and ensure that it is successful.
