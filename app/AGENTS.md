@@ -5,6 +5,8 @@
 * When I ask to migrate to the "Next-Gen" SDK, **ALWAYS** look up the latest
   stable version for
   `com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk`.
+* **BEST PRACTICE:** Update `libs.versions.toml` (if used) with the new version 
+  and library definition before updating the `build.gradle` file.
 * Make sure the project meets the SDK requirements of `minSdk` 24 or higher
   and `compileSdk` of 35 or higher.
 * Replace the `com.google.android.gms:play-services-ads` dependency with the
@@ -16,6 +18,8 @@
       `com.google.android.gms.ads.mediation.Adapter` class, ask me if I'm
       sure I want to migrate this class before making the change.
 * **CRITICAL:** `MobileAds.initialize()` must be called on a background thread.
+* **CRITICAL:** The initialization listener is now `OnAdapterInitializationCompleteListener` 
+  in the `com.google.android.libraries.ads.mobile.sdk.initialization` package.
 * **CRITICAL:** Make sure `MobileAds.initialize()` is called **before** any
   other SDK methods (e.g., `MobileAds.setRequestConfiguration()`). Move any such
   calls to the initialization callback or after initialization is complete.
@@ -37,6 +41,15 @@
   you've verified every step in the instructions, consider the migration
   complete.
 
+### Ad Unit IDs and Loading
+* **CRITICAL:** The Ad Unit ID is no longer passed to the `load()` methods. 
+  It MUST be provided in the format-specific `AdRequest.Builder(AD_UNIT_ID)`.
+* `load()` methods no longer take an `Activity` or `Context` parameter (except for `BannerAd` which is called on `AdView`).
+
+### App Open ads
+* The `AppOpenAd.load` signature is simplified: `AppOpenAd.load(AdRequest request, AdLoadCallback<AppOpenAd> callback)`.
+* Orientation and Context parameters have been removed from the load call.
+
 ### Banner ads
 
 * Declare the preferred
@@ -47,6 +60,9 @@
 
 ### Native ads
 
+* **XML Layouts:** Use the full Next-Gen package names for AdView and MediaView:
+    * `com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView`
+    * `com.google.android.libraries.ads.mobile.sdk.nativead.MediaView`
 * The following APIs are now set on the `NativeAdRequest.Builder`:
     * `.setCustomFormatIds(customFormatIds: List<String>)`
     * `.disableImageDownloading()`
@@ -67,7 +83,7 @@
 * **TEXT:** Change the text from "Using Old GMA SDK" to **"Using Next Gen GMA SDK"**.
 * **COLOR:** Change the `android:background` from `#FF9800` (Orange) to **`#4CAF50`** (Green).
 * **LOGGING:** Update the `tv_logs` initial text to say "GMA Next-Gen SDK Initialized".
-* Ensure the tv_sdk_status update happens inside the OnInitializationCompleteListener callback to prove the SDK is actually active."
+* Ensure the tv_sdk_status update happens inside the OnAdapterInitializationCompleteListener callback to prove the SDK is actually active."
 
 ### API mapping
 
@@ -129,7 +145,7 @@ This table covers the main methods and their GMA Next-Gen SDK equivalents.
 | Feature                                  | Old SDK Method Signature                                                                                                                                                        | GMA Next-Gen SDK Method Signature                                                                                                                                                                                                                                                          |
 |:-----------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Core**                                 |                                                                                                                                                                                 |                                                                                                                                                                                                                                                                                            |
-| MobileAds Initialization                 | `MobileAds.initialize(Context context, OnInitializationCompleteListener listener)`                                                                                              | `MobileAds.initialize(Context context, InitializationConfig config, OnInitializationCompleteListener listener)`                                                                                                                                                                            |
+| MobileAds Initialization                 | `MobileAds.initialize(Context context, OnInitializationCompleteListener listener)`                                                                                              | `MobileAds.initialize(Context context, InitializationConfig config, OnAdapterInitializationCompleteListener listener)`                                                                                                                                                                     |
 | InitializationConfig Builder             | N/A                                                                                                                                                                             | `InitializationConfig.Builder(String applicationId)`                                                                                                                                                                                                                                       |
 | Ad Request Builder                       | `AdRequest.Builder().build()`                                                                                                                                                   | `AdRequest.Builder(String adUnitId).build()` (for App Open, Interstitial, Rewarded, Rewarded Interstitial) **Banner:** `BannerAdRequest.Builder(String adUnitId, AdSize adSize).build()` **Native:** `NativeAdRequest.Builder(String adUnitId, nativeAdTypes: List<NativeAdType>).build()` |
 | Add Network Extras (AdMobAdapter)        | `AdRequest.Builder().addNetworkExtrasBundle(Class<MediationExtrasReceiver>, Bundle networkExtras)`                                                                              | `AdRequest.Builder(String adUnitId).setGoogleExtrasBundle(Bundle extraBundle)`                                                                                                                                                                                                             |
